@@ -125,7 +125,7 @@ h2 { font-size: 17px; margin: 12px 0 6px; }
    ・出荷リストと記録は、QRコードでパソコンと受け渡す（ネットを使わない）。パソコン側は「パソコン用_QR受け渡し.html」
    ・ネットなしで開けるように AppCache（app.appcache）を使う。記録は端末の中（localStorage）だけ */
 
-var APP_VERSION = "1.0.1";
+var APP_VERSION = "1.0.2";
 var LS_SET = "nitenipod.settings.v1";
 var LS_LIST = "nitenipod.list.v1";
 var LS_REC = "nitenipod.records.v1";
@@ -704,7 +704,7 @@ function kbTest() {
 function openModal(html, onMount) {
   $("modalRoot").innerHTML = '<div class="modal-bg"><div class="modal">' + html + '</div></div>';
   window.scrollTo(0, 0);
-  if (onMount) onMount();
+  if (onMount) onMount($("modalRoot").querySelector(".modal"));
 }
 function closeModal() { $("modalRoot").innerHTML = ""; }
 function render() {
