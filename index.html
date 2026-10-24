@@ -60,6 +60,13 @@ h2 { font-size: 17px; margin: 12px 0 6px; }
 .result small { display: block; font-size: 13px; font-weight: normal; }
 .result .kv { font-size: 14px; font-weight: normal; color: #1F2328; margin-top: 4px; }
 .result .kv b { font-weight: bold; }
+.result .remain { display: block; font-size: 22px; font-weight: bold; margin-top: 2px; }
+/* 全部そろったとき */
+.alldone { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 50; background: #0E6B0E; color: #fff; text-align: center; padding: 60px 14px 14px; }
+.alldone .ad1 { font-size: 34px; font-weight: bold; line-height: 1.2; margin-bottom: 12px; }
+.alldone .ad2 { font-size: 16px; margin-bottom: 10px; }
+.alldone .ad3 { font-size: 15px; background: #FFEB9C; color: #7A5200; border-radius: 10px; padding: 6px 10px; margin-bottom: 10px; }
+.alldone .btn { background: #fff; color: #1F2328; border-color: transparent; min-width: 180px; font-size: 18px; margin-top: 10px; }
 .info button { display: block; width: 100%; text-align: left; min-height: 46px; padding: 4px 10px; border-radius: 10px; border: 1px solid #D0D4DA; background: #FFF8E6; }
 .info button small { display: block; color: #5B6370; font-size: 12px; }
 .info button b { display: block; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -127,7 +134,7 @@ h2 { font-size: 17px; margin: 12px 0 6px; }
    ・出荷リストと記録は、QRコードでパソコンと受け渡す（ネットを使わない）。パソコン側は「パソコン用_QR受け渡し.html」
    ・ネットなしで開けるように AppCache（app.appcache）を使う。記録は端末の中（localStorage）だけ */
 
-var APP_VERSION = "1.0.3";
+var APP_VERSION = "1.0.5";
 var LS_SET = "nitenipod.settings.v1";
 var LS_LIST = "nitenipod.list.v1";
 var LS_REC = "nitenipod.records.v1";
@@ -304,7 +311,8 @@ function processScan(raw) {
     var again = !!p, g = kanbanLookup(raw);
     S.pend = { type: "kanban", raw: raw, t: nowText() }; saveAll();
     setResult("wait", (again ? "かんばんを読み直しました" : "① かんばん OK") + "　→ 次は ② 社内ラベル",
-      (g ? "出荷リスト No." + g.rows[0].no + "　" + groupHinban(g).join("・") : "（出荷リストに見つかりません）") + "　読んだ内容：" + raw);
+      (g ? "出荷リスト No." + g.rows[0].no + "　" + groupHinban(g).join("・") + "　（" + remainText(g, sumFor(g.nohin), boxesFor(g.nohin), true) + "）" :
+        "（出荷リストに見つかりません）") + "　読んだ内容：" + raw);
     beep("step"); renderNow(); return;
   }
   S.pend = null;
@@ -330,16 +338,48 @@ function finishPair(kb, lb) {
     if (sum > g.qty) warns.push("数量オーバー（納品数 " + fmtNum(g.qty) + "、読んだ合計 " + fmtNum(sum) + "）");
   }
   rec.warn = warns.join("／");
+  var wasDone = listDone(buildProgress());
   R.push(rec); saveAll();
   var s2 = sumFor(rec.nohin), row = g ? g.rows[0] : null, m = masterOf(rec.hinban);
   var head = rec.warn ? "注意　No." + rec.no + "　" + rec.warn : (g && s2 === g.qty ? "OK　No." + rec.no + "　そろいました" : "OK　No." + rec.no);
-  lastResult = { cls: rec.warn ? "warn" : "ok", html: esc(head) + '<div class="kv">品番 <b>' + esc(rec.hinban || "-") + '</b>' +
+  lastResult = { cls: rec.warn ? "warn" : "ok", html: esc(head) +
+    (g ? '<span class="remain">' + esc(remainText(g, s2, boxesFor(rec.nohin))) + '</span>' : "") + '<div class="kv">品番 <b>' + esc(rec.hinban || "-") + '</b>' +
     (row && row.hinmei ? "　" + esc(row.hinmei) : "") + '<br>機種 ' + esc((row && row.kishu) || (m && m.kishu) || "-") +
     "　通函最大入り数 " + esc((row && row.irisu) || (m && m.irisu) || "-") +
     '<br>この箱 <b>' + rec.qty + '</b>　納品番号 ' + esc(rec.nohin) + '：<b>' + fmtNum(s2) + (g ? " / " + fmtNum(g.qty) : "") + '</b>（' + boxesFor(rec.nohin) + (g && g.labels ? " / " + g.labels : "") + ' 箱）</div>' };
   showResult();
-  beep(rec.warn ? "warn" : "ok");
+  var pg = buildProgress();
+  if (!wasDone && listDone(pg)) { beep("done"); showAllDone(pg); }
+  else beep(rec.warn ? "warn" : "ok");
   renderNow(); renderRecent();
+}
+// 出荷リストの納品番号が全部「完了」か
+function listDone(p) { return p.rows.length > 0 && p.c.done === p.rows.length; }
+// この納品番号の残り（atKanban：① かんばんを読んだところ）
+function remainText(g, sum, boxes, atKanban) {
+  var rq = g.qty - sum, rb = g.labels ? g.labels - boxes : 0;
+  if (rq === 0) return atKanban ? "この納品番号はもうそろっています" : "この納品番号はそろいました";
+  if (rq < 0) return "納品数より " + fmtNum(-rq) + " 多いです";
+  return (rb > 0 ? "あと " + rb + " 箱　" : "") + "残り数量 " + fmtNum(rq);
+}
+function showAllDone(p) {
+  closeAllDone();
+  var el = document.createElement("div");
+  el.id = "allDone"; el.className = "alldone";
+  el.innerHTML = '<div class="ad1">全部そろいました</div>' +
+    '<div class="ad2">出荷リストの納品番号 ' + p.rows.length + ' 件、すべて完了です</div>' +
+    (p.outs.length || p.hinWarn ? '<div class="ad3">注意の記録があります（リスト外 ' + p.outs.length + ' 件・品番違い ' + p.hinWarn + ' 件）。パソコンで確かめてください</div>' : "") +
+    '<div class="ad2">記録のQRを出して、パソコンへ送ってください</div>' +
+    '<button class="btn" id="adClose">閉じる</button>';
+  el.onclick = closeAllDone;
+  document.body.appendChild(el);
+}
+function closeAllDone() {
+  var el = $("allDone");
+  if (!el) return;
+  el.parentNode.removeChild(el);
+  var si = $("scanInput");
+  if (si) try { si.focus(); } catch (e) { }
 }
 function sumFor(nohin) {
   var k = normKey(nohin), s = 0;
@@ -364,7 +404,8 @@ function unlockAudio() {
 }
 function beep(kind) {
   if (!S.sound || !audioCtx) return;
-  var seqs = { step: [[990, 0, 0.06]], ok: [[1320, 0, 0.09], [1760, 0.11, 0.12]], warn: [[880, 0, 0.12], [880, 0.18, 0.12], [880, 0.36, 0.12]], ng: [[330, 0, 0.18], [260, 0.22, 0.4]] };
+  var seqs = { step: [[990, 0, 0.06]], ok: [[1320, 0, 0.09], [1760, 0.11, 0.12]], warn: [[880, 0, 0.12], [880, 0.18, 0.12], [880, 0.36, 0.12]], ng: [[330, 0, 0.18], [260, 0.22, 0.4]],
+    done: [[1047, 0, 0.12], [1319, 0.14, 0.12], [1568, 0.28, 0.12], [2093, 0.42, 0.45]] };
   try {
     (seqs[kind] || seqs.ok).forEach(function (p) {
       var o = audioCtx.createOscillator(), g = audioCtx.createGain();
@@ -383,7 +424,7 @@ function renderScan() {
   var cnt = L ? Object.keys(listIndex()).length : 0;
   return (saveError ? '<div class="banner">' + esc(saveError) + '</div>' : "") +
     (!L ? '<div class="banner">出荷リストが入っていません。設定・受渡 →「出荷リストを受け取る」で入れてください。</div>' : "") +
-    (listIsStale() ? '<div class="banner stale"><b>この出荷リストは ' + esc(listDay(L).slice(5)) + ' に受け取ったものです。今日の出荷リストか確かめてください。</b>' +
+    (listIsStale() ? '<div class="banner stale"><b>' + esc(staleText()) + '</b>' +
       '<div class="muted" style="margin:3px 0 6px">' + esc(L.name) + '　／　違うときは 設定・受渡 →「出荷リストを受け取る」</div>' +
       '<button id="listOk" class="btn">今日もこの出荷リストで読む</button></div>' : "") +
     '<div id="now" class="now k"></div>' +
@@ -392,16 +433,29 @@ function renderScan() {
     '<div id="result" class="result"></div>' +
     '<div class="row info" style="margin-bottom:8px">' +
     '<button id="btnTanto" class="' + (S.tanto ? "" : "empty") + '"><small>作業者</small><b>' + esc(S.tanto || "未入力（タップ）") + '</b></button>' +
-    '<button id="btnList" class="' + (L ? "" : "empty") + '"><small>出荷リスト' + (L ? "（" + cnt + "件・" + esc(String(L.loaded || "").slice(5, 16)) + "）" : "") + '</small><b>' + esc(L ? L.name : "なし") + '</b></button></div>' +
+    '<button id="btnList" class="' + (L ? "" : "empty") + '"><small>出荷リスト' + (L ? "（" + cnt + "件・" + (L.loadDay ? "積込 " + esc(L.loadDay.slice(5)) : esc(String(L.loaded || "").slice(5, 16))) + "）" : "") + '</small><b>' + esc(L ? L.name : "なし") + '</b></button></div>' +
     '<div class="card"><b>最近の記録</b> <span class="muted" id="recCount"></span><div id="recent" style="margin-top:6px"></div></div>';
 }
 // 出荷リストが、今日より前に受け取ったもので、今日まだ確かめていないか（何日か使うときは1日に1回確かめる）
 function todayText() { return nowText().slice(0, 10); }
 function listDay(list) { return String(list && list.loaded || "").slice(0, 10); }
-function listIsStale() { return !!L && listDay(L) !== "" && listDay(L) < todayText() && L.okDay !== todayText(); }
+// 積込日（出荷リストに入っている）があれば積込日が今日か、無ければ受け取った日が今日より前か、で見る
+function listIsStale() {
+  if (!L || L.okDay === todayText()) return false;
+  if (L.loadDay) return L.loadDay !== todayText();
+  return listDay(L) !== "" && listDay(L) < todayText();
+}
+function staleText() {
+  return L.loadDay ? "この出荷リストの積込日は " + L.loadDay.slice(5) + " です（今日は " + todayText().slice(5) + "）。今日の出荷リストか確かめてください。" :
+    "この出荷リストは " + listDay(L).slice(5) + " に受け取ったものです。今日の出荷リストか確かめてください。";
+}
+function normDay(s) {
+  var m = /^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(cleanText(s));
+  return m ? m[1] + "/" + pad(parseInt(m[2], 10)) + "/" + pad(parseInt(m[3], 10)) : "";
+}
 function bindScan() {
   if ($("listOk")) $("listOk").onclick = function () {
-    if (!confirm("出荷リスト「" + L.name + "」（" + listDay(L) + " 受け取り）で、今日も読みますか？")) return;
+    if (!confirm("出荷リスト「" + L.name + "」（" + (L.loadDay ? "積込日 " + L.loadDay : listDay(L) + " 受け取り") + "）で、今日も読みますか？")) return;
     L.okDay = todayText(); saveAll(); lastResult = null; render();
   };
   $("btnTanto").onclick = editTanto;
@@ -554,6 +608,7 @@ function parseListText(text) {
     var c = lines[i].split("\t");
     if (c[0] === "S") {
       var r = { no: c[1], nohin: c[2], noki: c[3], hinban: c[4], hinmei: c[5], qty: toInt(c[6]), kishu: c[7], irisu: c[8], biko: c[9], labels: toInt(c[10]), hasu: c[11] };
+      if (!list.loadDay) list.loadDay = normDay(c[12]);
       if (!r.nohin || !(r.qty >= 0)) continue;
       if (!(r.labels >= 0)) r.labels = 0;
       list.rows.push(r);
