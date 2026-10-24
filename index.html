@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja" manifest="app.appcache">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="2点照合">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="icon-120.png">
+<title>2点照合（iPod）</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: rgba(0,0,0,0); }
+html, body { margin: 0; padding: 0; background: #F2F3F5; color: #1F2328;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; font-size: 16px; line-height: 1.4; -webkit-text-size-adjust: 100%; }
+body { padding-bottom: 60px; }
+button, input, select { font: inherit; color: inherit; }
+.wrap { padding: 8px 10px 16px; padding-top: 24px; }
+h1 { font-size: 19px; margin: 2px 0 8px; }
+h2 { font-size: 17px; margin: 12px 0 6px; }
+.card { background: #fff; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+.muted { color: #5B6370; font-size: 13px; }
+.row { display: -webkit-flex; display: flex; }
+.row > * { -webkit-flex: 1; flex: 1; min-width: 0; }
+.row > * + * { margin-left: 6px; }
+.btn { display: block; width: 100%; min-height: 46px; padding: 6px 10px; border-radius: 10px; border: 1px solid #D0D4DA;
+  background: #fff; font-weight: bold; text-align: center; -webkit-appearance: none; }
+.btn.primary { background: #2F75B5; color: #fff; border-color: #2F75B5; }
+.btn.danger { color: #C00000; border-color: #E6A3A3; }
+.btn.small { min-height: 38px; font-size: 14px; }
+.input { display: block; width: 100%; min-height: 46px; padding: 0 10px; border: 1px solid #D0D4DA; border-radius: 10px; background: #fff;
+  font-size: 17px; -webkit-appearance: none; }
+.field { display: block; margin-bottom: 10px; }
+.field span { display: block; font-size: 13px; color: #5B6370; margin-bottom: 3px; }
+.errtxt { color: #9C0006; font-size: 13px; font-weight: bold; }
+
+/* いま読むもの：① かんばん＝青、② 社内ラベル＝オレンジ */
+.now { border-radius: 12px; padding: 10px 12px; color: #fff; margin-bottom: 8px; }
+.now.k { background: #2F75B5; }
+.now.l { background: #C55A11; }
+.now .ns { font-size: 13px; }
+.now .nw { font-size: 23px; font-weight: bold; line-height: 1.25; }
+.now .nx { font-size: 13px; margin-top: 2px; word-break: break-all; }
+.now .flow { display: -webkit-flex; display: flex; margin-top: 6px; }
+.now .flow span { -webkit-flex: 1; flex: 1; text-align: center; border-radius: 8px; padding: 3px; font-size: 13px; background: rgba(255,255,255,.2); }
+.now .flow span + span { margin-left: 4px; }
+.now .flow span.cur { background: #fff; color: #1F2328; font-weight: bold; }
+.now .flow span.done { background: rgba(255,255,255,.45); }
+.now .btn { margin-top: 6px; min-height: 36px; font-size: 14px; border-color: #fff; color: #1F2328; }
+.btn:disabled { opacity: .35; }
+.scan-input { font-size: 18px; min-height: 52px; border: 3px solid #2F75B5; background: #EEF5FC; margin-bottom: 8px; }
+.scan-input.l { border-color: #C55A11; background: #FBE5D6; }
+.result { border-radius: 12px; padding: 10px 12px; font-size: 17px; font-weight: bold; background: #E7E9EC; color: #5B6370; word-break: break-all; margin-bottom: 8px; }
+.result.ok { background: #C6EFCE; color: #006100; }
+.result.ng { background: #FFC7CE; color: #9C0006; }
+.result.warn { background: #FFEB9C; color: #7A5200; }
+.result.wait { background: #DDEBF7; color: #1F4E79; }
+.result small { display: block; font-size: 13px; font-weight: normal; }
+.result .kv { font-size: 14px; font-weight: normal; color: #1F2328; margin-top: 4px; }
+.result .kv b { font-weight: bold; }
+.info button { display: block; width: 100%; text-align: left; min-height: 46px; padding: 4px 10px; border-radius: 10px; border: 1px solid #D0D4DA; background: #FFF8E6; }
+.info button small { display: block; color: #5B6370; font-size: 12px; }
+.info button b { display: block; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.info button.empty b { color: #C00000; }
+
+/* 記録・照合状況 */
+.rec { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px; margin-bottom: 6px; border: 1px solid #E1E3E6; background: #fff; }
+.rec .top { display: -webkit-flex; display: flex; }
+.rec .top .hin { -webkit-flex: 1; flex: 1; min-width: 0; font-size: 16px; font-weight: bold; word-break: break-all; }
+.rec .top .qty { font-size: 18px; font-weight: bold; margin-left: 6px; }
+.rec .meta { font-size: 12px; color: #5B6370; word-break: break-all; }
+.rec .msg { font-size: 13px; font-weight: bold; }
+.rec.ng { background: #FFC7CE; } .rec.ng .msg { color: #9C0006; }
+.rec.warn { background: #FFF6D5; } .rec.warn .msg { color: #7A5200; }
+.rec.cancel { background: #EDEDED; color: #8A8F98; }
+.rec.cancel .hin, .rec.cancel .qty { text-decoration: line-through; }
+.rec.s-done { background: #EEF7EA; } .rec.s-over, .rec.s-out { background: #FFF6D5; }
+.tag { display: inline-block; font-size: 12px; padding: 0 6px; border-radius: 9px; background: #E7E9EC; margin-right: 3px; }
+.tag.ok { background: #C6EFCE; color: #006100; } .tag.ng { background: #FFC7CE; color: #9C0006; } .tag.warn { background: #FFEB9C; color: #7A5200; }
+.tag.part { background: #DDEBF7; color: #1F4E79; }
+.stats { display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+.stat { width: 31%; margin: 0 1% 6px; border-radius: 10px; padding: 4px 6px; background: #F4F5F7; }
+.stat b { display: block; font-size: 20px; }
+.stat small { font-size: 12px; color: #5B6370; }
+.stat.ok { background: #C6EFCE; } .stat.ng { background: #FFC7CE; } .stat.warn { background: #FFEB9C; }
+.done-banner { background: #C6EFCE; color: #006100; border-radius: 12px; padding: 10px; font-size: 17px; font-weight: bold; margin-bottom: 8px; }
+.banner.stale { background: #FFEB9C; border: 2px solid #C9A227; font-size: 15px; }
+.banner { background: #FFF2CC; border: 1px solid #E5C76B; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; font-size: 14px; }
+
+/* QR の受け渡し */
+.qrbox { text-align: center; background: #fff; border-radius: 12px; padding: 8px; }
+.qrbox canvas { display: block; margin: 0 auto; width: 280px; height: 280px; }
+.qrno { font-size: 22px; font-weight: bold; text-align: center; margin: 6px 0; }
+.slots { margin: 6px 0; }
+.slot { display: inline-block; min-width: 34px; padding: 2px 4px; margin: 2px; border-radius: 6px; text-align: center; background: #E7E9EC; font-size: 14px; }
+.slot.got { background: #C6EFCE; color: #006100; font-weight: bold; }
+
+/* タブ */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; height: 56px; display: -webkit-flex; display: flex; background: #fff; border-top: 1px solid #D0D4DA; z-index: 10; }
+.tabs button { -webkit-flex: 1; flex: 1; border: 0; background: #fff; font-size: 12px; color: #5B6370; -webkit-appearance: none; }
+.tabs button b { display: block; font-size: 19px; }
+.tabs button.sel { color: #2F75B5; font-weight: bold; }
+.modal-bg { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,.45); z-index: 20; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.modal { background: #F2F3F5; margin: 20px 8px; border-radius: 14px; padding: 12px; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="tabs" id="tabs">
+  <button data-tab="scan"><b>▣</b>読取</button>
+  <button data-tab="prog"><b>✓</b>照合状況</button>
+  <button data-tab="list"><b>☰</b>記録</button>
+  <button data-tab="set"><b>⚙</b>設定・受渡</button>
+</div>
+<div id="modalRoot"></div>
+<script src="pako.min.js"></script>
+<script src="qrcode.js"></script>
+<script src="qrlink.js"></script>
+<script>
+"use strict";
+/* 2点照合ツール（iPod touch 5・iOS 9 専用版）
+   ・読み取りは Bluetooth スキャナだけ（iOS 9 の Safari はカメラで写しながら読めないため）
+   ・① 納入かんばん → ② 社内ラベル（QR：納品番号,品番,入数）の順に読み、誤品と過不足を調べる（タブレット版と同じ）
+   ・出荷リストと記録は、QRコードでパソコンと受け渡す（ネットを使わない）。パソコン側は「パソコン用_QR受け渡し.html」
+   ・ネットなしで開けるように AppCache（app.appcache）を使う。記録は端末の中（localStorage）だけ */
+
+var APP_VERSION = "1.0.1";
+var LS_SET = "nitenipod.settings.v1";
+var LS_LIST = "nitenipod.list.v1";
+var LS_REC = "nitenipod.records.v1";
+var LABEL_FMT = ["納品番号", "品番", "入数"];
+var KB_MODES = [
+  { v: "whole", name: "全体が同じならOK（おすすめ）" },
+  { v: "contains", name: "入っていればOK" },
+  { v: "pos", name: "決まった位置から取り出す" },
+  { v: "delim", name: "区切り文字で分けて取り出す" }
+];
+
+var S = null, L = null, R = [];
+var tab = "scan", lastResult = null, saveError = "", listFilter = "";
+
+/* ---------------- 保存 ---------------- */
+function loadAll() {
+  S = null; L = null; R = [];
+  try { S = JSON.parse(localStorage.getItem(LS_SET) || "null"); } catch (e) { S = null; }
+  try { L = JSON.parse(localStorage.getItem(LS_LIST) || "null"); } catch (e) { L = null; }
+  try { R = JSON.parse(localStorage.getItem(LS_REC) || "[]") || []; } catch (e) { R = []; }
+  if (!S || typeof S !== "object") S = {};
+  if (typeof S.tanto !== "string") S.tanto = "";
+  if (!(S.tantos instanceof Array)) S.tantos = [];
+  if (typeof S.device !== "string") S.device = "iPod-1";
+  if (typeof S.seq !== "number") S.seq = 0;
+  if (typeof S.sound !== "boolean") S.sound = true;
+  if (!S.kb || typeof S.kb !== "object") S.kb = {};
+  var okMode = false;
+  for (var i = 0; i < KB_MODES.length; i++) if (KB_MODES[i].v === S.kb.mode) okMode = true;
+  if (!okMode) S.kb.mode = "whole";
+  if (!(S.kb.start >= 1)) S.kb.start = 1;
+  if (!(S.kb.len >= 1)) S.kb.len = 20;
+  if (typeof S.kb.delim !== "string" || !S.kb.delim) S.kb.delim = "-";
+  if (!(S.kb.index >= 1)) S.kb.index = 1;
+  if (!S.pend || S.pend.type !== "kanban") S.pend = null;
+  if (!L || !(L.rows instanceof Array)) L = null;
+  if (L && (!L.master || typeof L.master !== "object")) L.master = {};
+  if (!(R instanceof Array)) R = [];
+}
+function saveAll() {
+  try {
+    localStorage.setItem(LS_SET, JSON.stringify(S));
+    localStorage.setItem(LS_LIST, JSON.stringify(L));
+    localStorage.setItem(LS_REC, JSON.stringify(R));
+    saveError = "";
+  } catch (e) {
+    saveError = "端末に保存できませんでした。すぐに「記録をQRで出す」でパソコンへ送ってください。";
+  }
+}
+
+/* ---------------- 共通 ---------------- */
+function $(id) { return document.getElementById(id); }
+function each(list, fn) { Array.prototype.forEach.call(list, fn); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function pad(n) { return n < 10 ? "0" + n : String(n); }
+function nowText(d) {
+  d = d || new Date();
+  return d.getFullYear() + "/" + pad(d.getMonth() + 1) + "/" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+// 改行・タブを取り、全角の英数字・記号を半角にする（「、」はカンマとみなす）
+function cleanText(s) {
+  s = String(s == null ? "" : s).replace(/[\r\n\t]/g, "");
+  var out = "";
+  for (var i = 0; i < s.length; i++) {
+    var c = s.charCodeAt(i);
+    if (c >= 0xFF01 && c <= 0xFF5E) out += String.fromCharCode(c - 0xFEE0);
+    else if (c === 0x3000) out += " ";
+    else if (c === 0x3001) out += ",";
+    else out += s.charAt(i);
+  }
+  return out.replace(/^\s+|\s+$/g, "");
+}
+function normKey(s) { return cleanText(s).replace(/\s+/g, "").toUpperCase(); }
+function isQty(s) { return /^[0-9]{1,9}$/.test(String(s)); }
+function toInt(s) {
+  s = cleanText(s).replace(/,/g, "");
+  return /^-?[0-9]+(\.0+)?$/.test(s) ? parseInt(s, 10) : NaN;
+}
+function fmtNum(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function newId() { return (S.device || "ipod") + "-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8); }
+function addRecent(list, v) {
+  if (!v) return;
+  var i = list.indexOf(v);
+  if (i >= 0) list.splice(i, 1);
+  list.unshift(v);
+  if (list.length > 8) list.length = 8;
+}
+
+/* ---------------- 出荷リスト ---------------- */
+function listIndex() {
+  var idx = {};
+  if (!L) return idx;
+  L.rows.forEach(function (r, i) {
+    var k = normKey(r.nohin);
+    if (!k) return;
+    var g = idx[k] || (idx[k] = { key: k, nohin: r.nohin, rows: [], qty: 0, labels: 0, order: i });
+    g.rows.push(r);
+    g.qty += r.qty > 0 ? r.qty : 0;
+    g.labels += r.labels > 0 ? r.labels : 0;
+  });
+  return idx;
+}
+function groupHinban(g) {
+  var a = [];
+  g.rows.forEach(function (r) { if (r.hinban && a.indexOf(r.hinban) < 0) a.push(r.hinban); });
+  return a;
+}
+function masterOf(h) { return L && h ? (L.master[normKey(h)] || null) : null; }
+
+/* ---------------- 読み取り ---------------- */
+// 社内ラベルのQRは「納品番号,品番,入数」の3項目
+function parseLabel(raw) {
+  var p = raw.split(",");
+  if (p.length !== 3) return null;
+  for (var i = 0; i < 3; i++) p[i] = p[i].replace(/^\s+|\s+$/g, "");
+  if (!p[0] || !isQty(p[2])) return null;
+  return { nohin: p[0], hinban: p[1], qty: parseInt(p[2], 10) };
+}
+function labelProblem(raw) {
+  if (raw.indexOf(",") < 0) return "";
+  if (S.kb.mode === "delim" && S.kb.delim === ",") return "";
+  var p = raw.split(",");
+  if (p.length !== 3) return "項目が " + p.length + " 個あります（社内ラベルは「納品番号,品番,入数」の 3 個）" +
+    (p.length === 2 ? "。品番の入っていない古い社内ラベルかもしれません。印刷し直してください" : "");
+  if (!p[0].replace(/\s/g, "")) return "納品番号が空です";
+  return "入数「" + p[2] + "」が数字ではありません";
+}
+function kanbanValue(raw) {
+  var k = S.kb;
+  if (k.mode === "whole") return raw;
+  if (k.mode === "pos") return raw.substr(k.start - 1, k.len);
+  if (k.mode === "delim") { var p = raw.split(k.delim); return p.length >= k.index ? p[k.index - 1] : ""; }
+  return null;
+}
+function kanbanMatches(raw, nohin) {
+  var n = normKey(nohin);
+  if (!n) return false;
+  var v = kanbanValue(raw);
+  if (v !== null) return normKey(v) === n;
+  var nr = normKey(raw);
+  if (nr.indexOf(n) < 0) return false;
+  var idx = listIndex();
+  return !Object.keys(idx).some(function (k) { return k !== n && k.length > n.length && nr.indexOf(k) >= 0; });
+}
+function kanbanLookup(raw) {
+  var idx = listIndex(), v = kanbanValue(raw);
+  if (v !== null) return idx[normKey(v)] || null;
+  var best = null, nr = normKey(raw);
+  Object.keys(idx).forEach(function (k) { if (nr.indexOf(k) >= 0 && (!best || k.length > best.key.length)) best = idx[k]; });
+  return best;
+}
+function processScan(raw) {
+  raw = cleanText(raw);
+  if (!raw) return;
+  if (/^NT[LR]/i.test(raw)) { setResult("ng", "NG　これは受け渡し用のQRです", "設定・受け渡し の画面で読んでください。記録していません"); beep("ng"); return; }
+  if (!S.tanto) { setResult("ng", "NG　作業者を入れてから読んでください", "読んだ内容：" + raw); beep("ng"); return; }
+  if (!L || !L.rows.length) { setResult("ng", "NG　出荷リストが入っていません", "設定・受け渡し →「出荷リストを受け取る」で入れてください"); beep("ng"); return; }
+  if (listIsStale()) { setResult("ng", "NG　出荷リストを確かめてください", "上の黄色い欄で、今日の出荷リストか確かめてから読んでください。記録していません"); beep("ng"); return; }
+  var lab = parseLabel(raw);
+  if (!lab) {
+    var why = labelProblem(raw);
+    if (why) { setResult("ng", "NG　社内ラベルとして読めません（" + why + "）", "読んだ内容：" + raw + "　記録していません"); beep("ng"); return; }
+  }
+  var p = S.pend;
+  if (lab && !p) {
+    setResult("ng", "NG　先に ① 納入かんばん を読んでください", "いま読んだのは社内ラベルです（" + raw + "）。記録していません");
+    beep("ng"); renderNow(); return;
+  }
+  if (!lab) {
+    var again = !!p, g = kanbanLookup(raw);
+    S.pend = { type: "kanban", raw: raw, t: nowText() }; saveAll();
+    setResult("wait", (again ? "かんばんを読み直しました" : "① かんばん OK") + "　→ 次は ② 社内ラベル",
+      (g ? "出荷リスト No." + g.rows[0].no + "　" + groupHinban(g).join("・") : "（出荷リストに見つかりません）") + "　読んだ内容：" + raw);
+    beep("step"); renderNow(); return;
+  }
+  S.pend = null;
+  finishPair(p, { raw: raw, nohin: lab.nohin, hinban: lab.hinban, qty: lab.qty });
+}
+function finishPair(kb, lb) {
+  S.seq += 1;
+  var rec = { id: newId(), no: S.seq, t: nowText(), tanto: S.tanto, device: S.device, list: L ? L.name : "",
+    result: "OK", warn: "", nohin: lb.nohin, hinban: lb.hinban, qty: lb.qty, kbRaw: kb.raw, lbRaw: lb.raw, cancel: "", cancelT: "" };
+  if (!kanbanMatches(kb.raw, lb.nohin)) {
+    var v = kanbanValue(kb.raw);
+    rec.result = "NG"; rec.warn = "誤品：かんばんと社内ラベルの納品番号が違う";
+    R.push(rec); saveAll();
+    setResult("ng", "NG　誤品です（納品番号が違います）", "かんばん：" + (v === null ? kb.raw : v) + "　社内ラベル：" + lb.nohin + "　この箱は数に入れていません");
+    beep("ng"); renderNow(); renderRecent(); return;
+  }
+  var g = listIndex()[normKey(rec.nohin)], warns = [];
+  if (!g) warns.push("リスト外（出荷リストにない納品番号）");
+  else {
+    var hs = groupHinban(g);
+    if (rec.hinban && hs.length && !hs.some(function (h) { return normKey(h) === normKey(rec.hinban); })) warns.push("品番がリストと違う（リスト：" + hs.join("・") + "）");
+    var sum = sumFor(rec.nohin) + rec.qty;
+    if (sum > g.qty) warns.push("数量オーバー（納品数 " + fmtNum(g.qty) + "、読んだ合計 " + fmtNum(sum) + "）");
+  }
+  rec.warn = warns.join("／");
+  R.push(rec); saveAll();
+  var s2 = sumFor(rec.nohin), row = g ? g.rows[0] : null, m = masterOf(rec.hinban);
+  var head = rec.warn ? "注意　No." + rec.no + "　" + rec.warn : (g && s2 === g.qty ? "OK　No." + rec.no + "　そろいました" : "OK　No." + rec.no);
+  lastResult = { cls: rec.warn ? "warn" : "ok", html: esc(head) + '<div class="kv">品番 <b>' + esc(rec.hinban || "-") + '</b>' +
+    (row && row.hinmei ? "　" + esc(row.hinmei) : "") + '<br>機種 ' + esc((row && row.kishu) || (m && m.kishu) || "-") +
+    "　通函最大入り数 " + esc((row && row.irisu) || (m && m.irisu) || "-") +
+    '<br>この箱 <b>' + rec.qty + '</b>　納品番号 ' + esc(rec.nohin) + '：<b>' + fmtNum(s2) + (g ? " / " + fmtNum(g.qty) : "") + '</b>（' + boxesFor(rec.nohin) + (g && g.labels ? " / " + g.labels : "") + ' 箱）</div>' };
+  showResult();
+  beep(rec.warn ? "warn" : "ok");
+  renderNow(); renderRecent();
+}
+function sumFor(nohin) {
+  var k = normKey(nohin), s = 0;
+  R.forEach(function (r) { if (r.result === "OK" && !r.cancel && normKey(r.nohin) === k) s += r.qty; });
+  return s;
+}
+function boxesFor(nohin) {
+  var k = normKey(nohin), n = 0;
+  R.forEach(function (r) { if (r.result === "OK" && !r.cancel && normKey(r.nohin) === k) n++; });
+  return n;
+}
+function setResult(cls, text, sub) {
+  lastResult = { cls: cls, html: esc(text) + (sub ? "<small>" + esc(sub) + "</small>" : "") };
+  showResult();
+}
+
+/* ---------------- 音 ---------------- */
+var audioCtx = null;
+function unlockAudio() {
+  if (audioCtx) return;
+  try { var AC = window.AudioContext || window.webkitAudioContext; if (AC) audioCtx = new AC(); } catch (e) { audioCtx = null; }
+}
+function beep(kind) {
+  if (!S.sound || !audioCtx) return;
+  var seqs = { step: [[990, 0, 0.06]], ok: [[1320, 0, 0.09], [1760, 0.11, 0.12]], warn: [[880, 0, 0.12], [880, 0.18, 0.12], [880, 0.36, 0.12]], ng: [[330, 0, 0.18], [260, 0.22, 0.4]] };
+  try {
+    (seqs[kind] || seqs.ok).forEach(function (p) {
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = kind === "ng" ? "square" : "sine"; o.frequency.value = p[0]; g.gain.value = kind === "ng" ? 0.12 : 0.25;
+      o.connect(g); g.connect(audioCtx.destination);
+      var t = audioCtx.currentTime + p[1];
+      o.start(t); o.stop(t + p[2]);
+    });
+  } catch (e) { }
+}
+document.addEventListener("touchend", unlockAudio, false);
+document.addEventListener("click", unlockAudio, false);
+
+/* ---------------- 画面：読取 ---------------- */
+function renderScan() {
+  var cnt = L ? Object.keys(listIndex()).length : 0;
+  return (saveError ? '<div class="banner">' + esc(saveError) + '</div>' : "") +
+    (!L ? '<div class="banner">出荷リストが入っていません。設定・受渡 →「出荷リストを受け取る」で入れてください。</div>' : "") +
+    (listIsStale() ? '<div class="banner stale"><b>この出荷リストは ' + esc(listDay(L).slice(5)) + ' に受け取ったものです。今日の出荷リストか確かめてください。</b>' +
+      '<div class="muted" style="margin:3px 0 6px">' + esc(L.name) + '　／　違うときは 設定・受渡 →「出荷リストを受け取る」</div>' +
+      '<button id="listOk" class="btn">今日もこの出荷リストで読む</button></div>' : "") +
+    '<div id="now" class="now k"></div>' +
+    '<input id="scanInput" class="input scan-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ここをタップしてスキャナで読む">' +
+    '<div class="muted" style="margin:-4px 0 8px">読む前に、上の欄をタップしてください（色のついた枠が出ていればよい）。</div>' +
+    '<div id="result" class="result"></div>' +
+    '<div class="row info" style="margin-bottom:8px">' +
+    '<button id="btnTanto" class="' + (S.tanto ? "" : "empty") + '"><small>作業者</small><b>' + esc(S.tanto || "未入力（タップ）") + '</b></button>' +
+    '<button id="btnList" class="' + (L ? "" : "empty") + '"><small>出荷リスト' + (L ? "（" + cnt + "件・" + esc(String(L.loaded || "").slice(5, 16)) + "）" : "") + '</small><b>' + esc(L ? L.name : "なし") + '</b></button></div>' +
+    '<div class="card"><b>最近の記録</b> <span class="muted" id="recCount"></span><div id="recent" style="margin-top:6px"></div></div>';
+}
+// 出荷リストが、今日より前に受け取ったもので、今日まだ確かめていないか（何日か使うときは1日に1回確かめる）
+function todayText() { return nowText().slice(0, 10); }
+function listDay(list) { return String(list && list.loaded || "").slice(0, 10); }
+function listIsStale() { return !!L && listDay(L) !== "" && listDay(L) < todayText() && L.okDay !== todayText(); }
+function bindScan() {
+  if ($("listOk")) $("listOk").onclick = function () {
+    if (!confirm("出荷リスト「" + L.name + "」（" + listDay(L) + " 受け取り）で、今日も読みますか？")) return;
+    L.okDay = todayText(); saveAll(); lastResult = null; render();
+  };
+  $("btnTanto").onclick = editTanto;
+  $("btnList").onclick = function () { tab = L ? "prog" : "set"; render(); };
+  var inp = $("scanInput");
+  inp.addEventListener("keydown", function (e) {
+    if (e.keyCode === 13 || e.keyCode === 9) {
+      e.preventDefault();
+      var v = inp.value; inp.value = "";
+      processScan(v);
+    }
+  }, false);
+  showResult(); renderNow(); renderRecent();
+}
+function renderNow() {
+  var p = S.pend, two = !!p, el = $("now");
+  if (el) {
+    var kv = two ? kanbanValue(p.raw) : null;
+    el.className = "now " + (two ? "l" : "k");
+    el.innerHTML = '<div class="ns">いま読むもの（' + (two ? 2 : 1) + ' / 2）</div>' +
+      '<div class="nw">' + (two ? "② 社内ラベル（QR）" : "① 納入かんばん") + '</div>' +
+      '<div class="nx">' + (two ? "読んだかんばん：" + esc(kv === null ? p.raw : kv) : "1箱ごとに かんばん → 社内ラベル の順に読みます") + '</div>' +
+      '<div class="flow"><span class="' + (two ? "done" : "cur") + '">① かんばん' + (two ? " ✓" : "") + '</span><span class="' + (two ? "cur" : "") + '">② 社内ラベル</span></div>' +
+      (two ? '<button id="pendClr" class="btn">かんばんを読み直す（やめる）</button>' : "");
+    var b = $("pendClr");
+    if (b) b.onclick = function () { S.pend = null; saveAll(); setResult("", "やめました。① 納入かんばんから読んでください", ""); renderNow(); };
+  }
+  var si = $("scanInput");
+  if (si) { si.className = "input scan-input" + (two ? " l" : ""); si.placeholder = two ? "② 社内ラベルを読む" : "① 納入かんばんを読む"; }
+}
+function showResult() {
+  var el = $("result");
+  if (!el) return;
+  if (!lastResult) { el.className = "result"; el.innerHTML = !S.tanto ? "まず作業者を入れてください" : "上の欄をタップしてから、スキャナで読んでください"; return; }
+  el.className = "result " + lastResult.cls;
+  el.innerHTML = lastResult.html;
+}
+function renderRecent() {
+  var el = $("recent");
+  if (!el) return;
+  var list = R.slice(-3).reverse();
+  el.innerHTML = list.length ? list.map(recHtml).join("") : '<div class="muted">まだありません</div>';
+  bindRecs(el);
+  var c = $("recCount"); if (c) c.textContent = R.length + "件";
+}
+function editTanto() {
+  openModal('<h2 style="margin-top:0">作業者</h2><input id="pv" class="input" type="text" value="' + esc(S.tanto) + '" placeholder="作業者の名前">' +
+    (S.tantos.length ? '<div class="muted" style="margin-top:8px">最近の名前</div>' + S.tantos.map(function (v) { return '<button class="btn small" data-v="' + esc(v) + '" style="margin-top:4px">' + esc(v) + '</button>'; }).join("") : "") +
+    '<div class="row" style="margin-top:10px"><button class="btn" id="pc">やめる</button><button class="btn primary" id="po">決定</button></div>',
+    function (m) {
+      each(m.querySelectorAll("[data-v]"), function (b) { b.onclick = function () { $("pv").value = b.getAttribute("data-v"); }; });
+      $("pc").onclick = function () { closeModal(); render(); };
+      $("po").onclick = function () { S.tanto = cleanText($("pv").value); addRecent(S.tantos, S.tanto); saveAll(); closeModal(); render(); };
+    });
+}
+
+/* ---------------- 記録 ---------------- */
+function recHtml(r) {
+  var cls = r.cancel ? "cancel" : r.result === "NG" ? "ng" : r.warn ? "warn" : "";
+  var tag = r.cancel ? '<span class="tag">取消</span>' : r.result === "NG" ? '<span class="tag ng">NG</span>' : r.warn ? '<span class="tag warn">注意</span>' : '<span class="tag ok">OK</span>';
+  return '<button class="rec ' + cls + '" data-id="' + esc(r.id) + '"><div class="top"><span class="hin">' + tag + esc(r.hinban || "（品番なし）") + '</span><span class="qty">' + esc(r.qty) + '</span></div>' +
+    '<div class="meta">No.' + esc(r.no) + '　納品番号 ' + esc(r.nohin) + '　' + esc(r.t.slice(5)) + '</div>' + (r.warn ? '<div class="msg">' + esc(r.warn) + '</div>' : "") + '</button>';
+}
+function bindRecs(root) { each(root.querySelectorAll("[data-id]"), function (b) { b.onclick = function () { showRecord(b.getAttribute("data-id")); }; }); }
+function showRecord(id) {
+  var r = null;
+  R.forEach(function (x) { if (x.id === id) r = x; });
+  if (!r) return;
+  openModal('<h2 style="margin-top:0">No.' + esc(r.no) + '　' + (r.cancel ? "取消" : esc(r.result)) + '</h2><div class="card">' +
+    '<div>' + esc(r.t) + '　' + esc(r.tanto) + '</div><div>納品番号 <b>' + esc(r.nohin) + '</b><br>品番 <b>' + esc(r.hinban || "-") + '</b>　入数 <b>' + esc(r.qty) + '</b></div>' +
+    (r.warn ? '<div class="errtxt">' + esc(r.warn) + '</div>' : "") +
+    '<div class="muted">かんばん：' + esc(r.kbRaw) + '<br>社内ラベル：' + esc(r.lbRaw) + '</div></div>' +
+    (r.cancel ? '<button class="btn" id="ru">取り消しをやめる</button>' : '<button class="btn danger" id="rd">この記録を取り消す（数に入れない）</button>') +
+    '<button class="btn" id="rc" style="margin-top:8px">閉じる</button>',
+    function () {
+      $("rc").onclick = function () { closeModal(); render(); };
+      if ($("rd")) $("rd").onclick = function () {
+        if (!confirm("No." + r.no + " を取り消しますか？")) return;
+        r.cancel = S.tanto || "取消"; r.cancelT = nowText(); saveAll(); closeModal(); render();
+      };
+      if ($("ru")) $("ru").onclick = function () { r.cancel = ""; r.cancelT = ""; saveAll(); closeModal(); render(); };
+    });
+}
+function renderList() {
+  var list = R.filter(function (r) {
+    if (listFilter === "ng") return !r.cancel && r.result === "NG";
+    if (listFilter === "warn") return !r.cancel && r.result === "OK" && r.warn;
+    return true;
+  }).reverse();
+  var chip = function (f, t) { return '<button class="btn small' + (listFilter === f ? " primary" : "") + '" data-f="' + f + '">' + t + '</button>'; };
+  return '<h1>記録（' + R.length + '件）</h1><div class="row" style="margin-bottom:8px">' + chip("", "すべて") + chip("ng", "NG") + chip("warn", "注意") + '</div>' +
+    '<div id="listBody">' + (list.length ? list.slice(0, 200).map(recHtml).join("") : '<div class="muted">記録がありません</div>') + '</div>';
+}
+function bindList() {
+  each(document.querySelectorAll("[data-f]"), function (b) { b.onclick = function () { listFilter = b.getAttribute("data-f"); render(); }; });
+  bindRecs($("listBody"));
+}
+
+/* ---------------- 照合状況 ---------------- */
+function buildProgress() {
+  var idx = listIndex(), groups = {}, outs = {}, ng = 0;
+  Object.keys(idx).forEach(function (k) { groups[k] = { g: idx[k], sum: 0, boxes: 0, hinWarn: 0 }; });
+  R.forEach(function (r) {
+    if (r.cancel) return;
+    if (r.result === "NG") { ng++; return; }
+    var k = normKey(r.nohin), x = groups[k];
+    if (x) { x.sum += r.qty; x.boxes++; if (r.warn.indexOf("品番がリストと違う") >= 0) x.hinWarn++; }
+    else { var o = outs[k] || (outs[k] = { nohin: r.nohin, hinban: r.hinban, sum: 0, boxes: 0 }); o.sum += r.qty; o.boxes++; }
+  });
+  var c = { none: 0, part: 0, done: 0, over: 0 }, hinWarn = 0;
+  var rows = Object.keys(groups).map(function (k) {
+    var x = groups[k];
+    x.st = x.sum === 0 ? "none" : x.sum < x.g.qty ? "part" : x.sum === x.g.qty ? "done" : "over";
+    c[x.st]++; if (x.hinWarn) hinWarn++;
+    return x;
+  }).sort(function (a, b) { return a.g.order - b.g.order; });
+  var ol = Object.keys(outs).map(function (k) { return outs[k]; });
+  return { rows: rows, outs: ol, ng: ng, c: c, hinWarn: hinWarn, allDone: rows.length > 0 && c.done === rows.length && !ol.length && !hinWarn };
+}
+var ST = { none: ["未", ""], part: ["不足", "part"], done: ["完了", "ok"], over: ["超過", "warn"] };
+function renderProg() {
+  if (!L) return '<h1>照合状況</h1><div class="banner">出荷リストが入っていません。</div>';
+  var p = buildProgress();
+  return '<h1>照合状況</h1>' + (p.allDone ? '<div class="done-banner">✓ 全部の納品番号がそろいました</div>' : "") +
+    '<div class="card"><div class="muted">' + esc(L.name) + '</div><div class="stats">' +
+    '<div class="stat ok"><b>' + p.c.done + '</b><small>完了</small></div><div class="stat"><b>' + p.c.part + '</b><small>不足</small></div>' +
+    '<div class="stat"><b>' + p.c.none + '</b><small>未</small></div><div class="stat' + (p.c.over ? " warn" : "") + '"><b>' + p.c.over + '</b><small>超過</small></div>' +
+    '<div class="stat' + (p.outs.length ? " warn" : "") + '"><b>' + p.outs.length + '</b><small>リスト外</small></div><div class="stat' + (p.ng ? " ng" : "") + '"><b>' + p.ng + '</b><small>NG</small></div></div></div>' +
+    p.rows.map(function (x) {
+      var g = x.g, st = ST[x.st];
+      return '<div class="rec s-' + x.st + '"><div class="top"><span class="hin"><span class="tag ' + st[1] + '">' + st[0] + '</span>' + esc(groupHinban(g).join("・")) + '</span>' +
+        '<span class="qty">' + fmtNum(x.sum) + '/' + fmtNum(g.qty) + '</span></div><div class="meta">No.' + esc(g.rows[0].no) + '　納品番号 ' + esc(g.nohin) + '　箱 ' + x.boxes + (g.labels ? "/" + g.labels : "") + '</div>' +
+        (x.hinWarn ? '<div class="msg" style="color:#7A5200">品番違いの箱 ' + x.hinWarn + '</div>' : "") + '</div>';
+    }).join("") +
+    (p.outs.length ? '<h2>リスト外</h2>' + p.outs.map(function (o) {
+      return '<div class="rec s-out"><div class="top"><span class="hin"><span class="tag warn">リスト外</span>' + esc(o.hinban) + '</span><span class="qty">' + fmtNum(o.sum) + '</span></div><div class="meta">納品番号 ' + esc(o.nohin) + '　箱 ' + o.boxes + '</div></div>';
+    }).join("") : "");
+}
+
+/* ---------------- 受け渡し（QR） ---------------- */
+// 出荷リストのQR（パソコン用_QR受け渡し.html で作る）の中身：
+//   NITEN-LIST <TAB> 1 <TAB> リスト名
+//   S <TAB> No. <TAB> 納品番号 <TAB> 納期 <TAB> 品番 <TAB> 品名 <TAB> 納品数 <TAB> 機種 <TAB> 通函最大入り数 <TAB> 備考 <TAB> ラベル枚数 <TAB> 端数入数
+//   M <TAB> 品番 <TAB> 機種 <TAB> 通函最大入り数
+function parseListText(text) {
+  var lines = text.split("\n"), head = lines[0].split("\t");
+  if (head[0] !== "NITEN-LIST") return { error: "出荷リストのデータではありません" };
+  var list = { name: head[2] || "出荷リスト", loaded: nowText(), rows: [], master: {} };
+  for (var i = 1; i < lines.length; i++) {
+    var c = lines[i].split("\t");
+    if (c[0] === "S") {
+      var r = { no: c[1], nohin: c[2], noki: c[3], hinban: c[4], hinmei: c[5], qty: toInt(c[6]), kishu: c[7], irisu: c[8], biko: c[9], labels: toInt(c[10]), hasu: c[11] };
+      if (!r.nohin || !(r.qty >= 0)) continue;
+      if (!(r.labels >= 0)) r.labels = 0;
+      list.rows.push(r);
+    } else if (c[0] === "M" && c[1]) {
+      list.master[normKey(c[1])] = { hinban: c[1], kishu: c[2], irisu: c[3] };
+    }
+  }
+  if (!list.rows.length) return { error: "出荷リストの行がありません" };
+  return { list: list };
+}
+// 記録のQRの中身（パソコンで記録CSVに戻す）
+var REC_FIELDS = ["no", "t", "tanto", "result", "warn", "nohin", "hinban", "qty", "kbRaw", "lbRaw", "cancel", "cancelT", "list", "device", "id"];
+function recordsText() {
+  return ["NITEN-REC\t1\t" + S.device + "\t" + nowText()].concat(R.map(function (r) {
+    return "R\t" + REC_FIELDS.map(function (f) { return String(r[f] == null ? "" : r[f]).replace(/[\t\r\n]/g, " "); }).join("\t");
+  })).join("\n");
+}
+function openReceive() {
+  var col = new QRLINK.Collector("L");
+  openModal('<h2 style="margin-top:0">出荷リストを受け取る</h2>' +
+    '<div class="muted">パソコンの「パソコン用_QR受け渡し.html」で出荷リストのQRを出し、1枚ずつスキャナで読みます（順番はどれからでもよい）。</div>' +
+    '<input id="rcvInput" class="input scan-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ここをタップしてQRを読む" style="margin-top:8px">' +
+    '<div id="rcvMsg" class="result">まだ読んでいません</div><div id="rcvSlots" class="slots"></div>' +
+    '<button class="btn" id="rcvClose">やめる</button>',
+    function () {
+      $("rcvClose").onclick = function () { closeModal(); render(); };
+      var inp = $("rcvInput");
+      inp.addEventListener("keydown", function (e) {
+        if (e.keyCode !== 13 && e.keyCode !== 9) return;
+        e.preventDefault();
+        var v = inp.value; inp.value = "";
+        var res = col.add(v), msg = $("rcvMsg");
+        if (!res.ok) { msg.className = "result ng"; msg.textContent = "NG　" + res.msg; beep("ng"); return; }
+        $("rcvSlots").innerHTML = "";
+        for (var i = 1; i <= col.total; i++) $("rcvSlots").innerHTML += '<span class="slot' + (col.parts[i - 1] ? " got" : "") + '">' + i + '</span>';
+        if (!res.done) {
+          msg.className = "result wait";
+          msg.innerHTML = esc(res.idx + " 枚目を受け取りました（" + col.count() + " / " + col.total + "）") + "<small>" +
+            esc((res.restarted ? "新しいQRなので、最初から集め直しています。" : "") + "まだ：" + col.missing().join("、") + " 枚目") + "</small>";
+          beep("step");
+          return;
+        }
+        var parsed;
+        try { parsed = parseListText(col.text()); } catch (er) { parsed = { error: "中身を読めませんでした（" + er.message + "）" }; }
+        if (parsed.error) { msg.className = "result ng"; msg.textContent = "NG　" + parsed.error; beep("ng"); col.id = ""; return; }
+        beep("ok");
+        applyList(parsed.list);
+      }, false);
+    });
+}
+function applyList(list) {
+  var msg = "出荷リスト「" + list.name + "」" + list.rows.length + " 行";
+  if (R.length) {
+    openModal('<h2 style="margin-top:0">出荷リストを受け取りました</h2><div class="card">' + esc(msg) + '</div><div class="muted">この iPod に記録が ' + R.length + ' 件あります。</div>' +
+      '<button class="btn primary" id="lk" style="margin-top:8px">記録は残して、リストだけ差し替える</button>' +
+      '<button class="btn danger" id="ln" style="margin-top:8px">記録を消して、新しい出荷を始める</button>' +
+      '<button class="btn" id="lc" style="margin-top:8px">やめる</button>',
+      function () {
+        $("lc").onclick = function () { closeModal(); render(); };
+        $("lk").onclick = function () { L = list; saveAll(); closeModal(); lastResult = null; tab = "scan"; render(); };
+        $("ln").onclick = function () {
+          if (!confirm("記録 " + R.length + " 件を消します。先に「記録をQRで出す」でパソコンへ送りましたか？")) return;
+          L = list; R = []; S.seq = 0; S.pend = null; lastResult = null; saveAll(); closeModal(); tab = "scan"; render();
+        };
+      });
+    return;
+  }
+  L = list; S.pend = null; lastResult = null; saveAll(); closeModal(); tab = "scan"; render();
+  alert(msg + " を入れました。");
+}
+function openSend() {
+  if (!R.length) { alert("記録がありません。"); return; }
+  var chunks = QRLINK.pack("R", recordsText()), i = 0;
+  openModal('<h2 style="margin-top:0">記録をQRで出す</h2>' +
+    '<div class="muted">パソコンの「パソコン用_QR受け渡し.html」の「記録を受け取る」で、1枚ずつスキャナで読んでください（' + R.length + ' 件分）。</div>' +
+    '<div class="qrno" id="sendNo"></div><div class="qrbox"><canvas id="sendQr"></canvas></div>' +
+    '<div class="row" style="margin-top:8px"><button class="btn" id="sendPrev">◀ 前</button><button class="btn primary" id="sendNext">次 ▶</button></div>' +
+    '<button class="btn" id="sendClose" style="margin-top:8px">閉じる</button>',
+    function () {
+      var show = function () {
+        QRLINK.draw($("sendQr"), chunks[i], 560);
+        $("sendNo").textContent = (i + 1) + " / " + chunks.length + " 枚目";
+        $("sendPrev").disabled = i === 0; $("sendNext").disabled = i === chunks.length - 1;
+      };
+      $("sendPrev").onclick = function () { if (i > 0) { i--; show(); } };
+      $("sendNext").onclick = function () { if (i < chunks.length - 1) { i++; show(); } };
+      $("sendClose").onclick = function () { closeModal(); render(); };
+      show();
+    });
+}
+
+/* ---------------- 設定 ---------------- */
+function renderSet() {
+  var k = S.kb;
+  return '<h1>設定・受け渡し</h1>' +
+    '<div class="card"><h2 style="margin-top:0">パソコンとの受け渡し（QR）</h2>' +
+    '<div class="muted" style="margin-bottom:6px">' + (L ? "今のリスト：" + esc(L.name) + "（" + L.rows.length + " 行）" : "出荷リストはまだ入っていません") + '</div>' +
+    '<button class="btn primary" id="goRcv">出荷リストを受け取る（パソコンのQRを読む）</button>' +
+    '<button class="btn primary" id="goSend" style="margin-top:8px">記録をQRで出す（パソコンで読む）</button></div>' +
+    '<div class="card"><h2 style="margin-top:0">この iPod</h2>' +
+    '<label class="field"><span>端末名</span><input id="dev" class="input" type="text" value="' + esc(S.device) + '"></label>' +
+    '<label style="display:block"><input id="snd" type="checkbox"' + (S.sound ? " checked" : "") + '> 読んだときに音を出す</label></div>' +
+    '<div class="card"><h2 style="margin-top:0">納入かんばんの読み方</h2>' +
+    '<select id="kbm" class="input">' + KB_MODES.map(function (m) { return '<option value="' + m.v + '"' + (m.v === k.mode ? " selected" : "") + '>' + esc(m.name) + '</option>'; }).join("") + '</select>' +
+    '<div class="row' + (k.mode === "pos" ? "" : " hidden") + '" id="kbPos" style="margin-top:6px"><label class="field"><span>何文字目から</span><input id="kbs" class="input" type="number" value="' + k.start + '"></label>' +
+    '<label class="field"><span>何文字</span><input id="kbl" class="input" type="number" value="' + k.len + '"></label></div>' +
+    '<div class="row' + (k.mode === "delim" ? "" : " hidden") + '" id="kbDel" style="margin-top:6px"><label class="field"><span>区切り文字</span><input id="kbd" class="input" type="text" value="' + esc(k.delim) + '"></label>' +
+    '<label class="field"><span>何番目</span><input id="kbi" class="input" type="number" value="' + k.index + '"></label></div>' +
+    '<input id="kbt" class="input" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="試し読み（ここでかんばんを読む）" style="margin-top:6px">' +
+    '<div id="kbr" class="muted" style="margin-top:4px"></div></div>' +
+    '<div class="card"><h2 style="margin-top:0">社内ラベル（QR）</h2><b>納品番号,品番,入数（3項目）</b><div class="muted">品番の入っていない古いラベルは、印刷し直してください。</div></div>' +
+    '<div class="card"><button class="btn danger" id="clr">記録と出荷リストを全部消す（新しい出荷）</button><div class="muted" style="margin-top:4px">記録 ' + R.length + ' 件。記録はこの iPod の中だけにあります。</div></div>' +
+    '<div class="muted" style="text-align:center">2点照合ツール iPod touch 版 ' + APP_VERSION + '</div>';
+}
+function bindSet() {
+  $("goRcv").onclick = openReceive;
+  $("goSend").onclick = openSend;
+  $("dev").onchange = function () { S.device = cleanText($("dev").value) || "iPod-1"; saveAll(); };
+  $("snd").onchange = function () { S.sound = $("snd").checked; saveAll(); };
+  $("kbm").onchange = function () {
+    S.kb.mode = $("kbm").value; saveAll();
+    $("kbPos").className = "row" + (S.kb.mode === "pos" ? "" : " hidden");
+    $("kbDel").className = "row" + (S.kb.mode === "delim" ? "" : " hidden");
+    kbTest();
+  };
+  var num = function (id, key) { $(id).oninput = function () { var n = toInt($(id).value); if (n >= 1) { S.kb[key] = n; saveAll(); } kbTest(); }; };
+  num("kbs", "start"); num("kbl", "len"); num("kbi", "index");
+  $("kbd").oninput = function () { if ($("kbd").value) { S.kb.delim = $("kbd").value; saveAll(); } kbTest(); };
+  $("kbt").addEventListener("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); kbTest(); } }, false);
+  $("kbt").oninput = kbTest;
+  $("clr").onclick = function () {
+    if (!R.length && !L) { alert("記録も出荷リストもありません。"); return; }
+    if (!confirm("記録 " + R.length + " 件と出荷リストを全部消して、新しい出荷を始めます。" + (R.length ? "先に「記録をQRで出す」でパソコンへ送りましたか？" : ""))) return;
+    // 前の出荷リストのまま次の出荷を読まないように、出荷リストも消す
+    R = []; L = null; S.seq = 0; S.pend = null; lastResult = null; saveAll(); render();
+    alert("消しました。次の出荷の出荷リストを受け取ってください。");
+  };
+}
+function kbTest() {
+  var raw = cleanText($("kbt").value), el = $("kbr");
+  if (!raw) { el.textContent = ""; return; }
+  if (parseLabel(raw)) { el.textContent = "これは社内ラベルのQRです：" + raw; return; }
+  if (labelProblem(raw)) { el.textContent = "社内ラベルとして読めません（" + labelProblem(raw) + "）：" + raw; return; }
+  var v = kanbanValue(raw), g = kanbanLookup(raw);
+  el.textContent = "読んだ内容：" + raw + "（" + raw.length + " 文字）" + (v !== null ? "　取り出した納品番号：" + (v || "なし") : "") +
+    "　→ " + (L ? (g ? "出荷リスト No." + g.rows[0].no + " " + groupHinban(g).join("・") : "出荷リストに合う納品番号はありません") : "出荷リストが入っていません");
+}
+
+/* ---------------- モーダル・画面 ---------------- */
+function openModal(html, onMount) {
+  $("modalRoot").innerHTML = '<div class="modal-bg"><div class="modal">' + html + '</div></div>';
+  window.scrollTo(0, 0);
+  if (onMount) onMount();
+}
+function closeModal() { $("modalRoot").innerHTML = ""; }
+function render() {
+  var app = $("app");
+  if (tab === "scan") { app.innerHTML = renderScan(); bindScan(); }
+  else if (tab === "prog") { app.innerHTML = renderProg(); }
+  else if (tab === "list") { app.innerHTML = renderList(); bindList(); }
+  else { app.innerHTML = renderSet(); bindSet(); }
+  each(document.querySelectorAll("#tabs button"), function (b) { b.className = b.getAttribute("data-tab") === tab ? "sel" : ""; });
+}
+each(document.querySelectorAll("#tabs button"), function (b) {
+  b.onclick = function () { tab = b.getAttribute("data-tab"); closeModal(); render(); window.scrollTo(0, 0); };
+});
+
+// 新しい版が届いたら入れ替える（AppCache）
+if (window.applicationCache) {
+  window.applicationCache.addEventListener("updateready", function () {
+    try { window.applicationCache.swapCache(); } catch (e) { }
+    if (confirm("新しい版が届きました。読み込み直しますか？（記録は消えません）")) location.reload();
+  }, false);
+}
+
+loadAll();
+render();
+</script>
+</body>
+</html>

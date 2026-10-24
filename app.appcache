@@ -1,0 +1,13 @@
+CACHE MANIFEST
+# 2点照合ツール iPod touch 版 1.0.1
+# 中身を変えたら、上の版の番号を上げる（iPod がネットにつながったときに入れ替わる）
+
+CACHE:
+index.html
+pako.min.js
+qrcode.js
+qrlink.js
+icon-120.png
+
+NETWORK:
+*
